@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import type { Topic } from '@/data/mockData';
 
 export default function TopicCard({ topic }: { topic: Topic }) {

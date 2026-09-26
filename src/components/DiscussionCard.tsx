@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ChevronRight, MessageCircle, CircleHelp } from 'lucide-react';
+import { MessageCircle, CircleHelp } from 'lucide-react';
 import type { Discussion } from '@/data/mockData';
 
 export default function DiscussionCard({ discussion }: { discussion: Discussion }) {

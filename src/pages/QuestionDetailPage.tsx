@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { ArrowRight, ChevronRight, MessageCircle, CircleHelp, Clock3, Users } from 'lucide-react';
+import { ArrowRight, MessageCircle, CircleHelp, Clock3, Users } from 'lucide-react';
 import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
 import AssistantPanel from '@/components/AssistantPanel';

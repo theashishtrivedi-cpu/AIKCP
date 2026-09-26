@@ -1,5 +1,4 @@
 import { useParams, Link } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
 import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
 import QuestionCard from '@/components/QuestionCard';

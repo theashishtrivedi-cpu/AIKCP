@@ -5,9 +5,8 @@ import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
 import QuestionCard from '@/components/QuestionCard';
 import NewsCard from '@/components/NewsCard';
-import DiscussionCard from '@/components/DiscussionCard';
 import { TopicCardGrid } from '@/components/TopicCard';
-import { questions, news, discussions, topics, articles } from '@/data/mockData';
+import { questions, news, topics, articles } from '@/data/mockData';
 
 type Tab = 'all' | 'questions' | 'articles' | 'current-affairs' | 'sanatan-board' | 'categories';
 
@@ -27,7 +26,6 @@ export default function SearchPage() {
 
   const q = query.toLowerCase();
   const matchedQuestions = q ? questions.filter((item) => item.question.toLowerCase().includes(q) || item.category.toLowerCase().includes(q)) : questions;
-  const matchedDiscussions = q ? discussions.filter((d) => d.title.toLowerCase().includes(q) || d.category.toLowerCase().includes(q)) : discussions;
   const matchedNews = q ? news.filter((n) => n.headline.toLowerCase().includes(q) || n.category.toLowerCase().includes(q)) : news;
   const matchedArticles = q ? articles.filter((a) => a.title.toLowerCase().includes(q) || a.category.toLowerCase().includes(q)) : articles;
   const matchedTopics = q ? topics.filter((t) => t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)) : topics;

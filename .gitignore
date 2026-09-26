@@ -10,7 +10,6 @@ node_modules
 dist
 dist-ssr
 *.local
-
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -23,3 +22,7 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+# Local development bootstrap artifacts
+scripts/*.local.ps1
+# Local Supabase Studio query snippets
+supabase/snippets/
