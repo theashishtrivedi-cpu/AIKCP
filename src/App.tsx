@@ -14,6 +14,10 @@ import SearchPage from '@/pages/SearchPage';
 import ProfilePage from '@/pages/ProfilePage';
 import NotificationsPage from '@/pages/NotificationsPage';
 import AdminPage from '@/pages/AdminPage';
+import LoginPage from '@/pages/LoginPage';
+import SignupPage from '@/pages/SignupPage';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import NotFoundPage from '@/pages/NotFoundPage';
 
 function App() {
   return (
@@ -32,9 +36,14 @@ function App() {
           <Route path="/sanatan-board" element={<SanatanBoardPage />} />
           <Route path="/sanatan-board/:sectionId" element={<SanatanBoardPage />} />
           <Route path="/search" element={<SearchPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/admin" element={<AdminPage />} />
+          </Route>
+        <Route path="*" element={<NotFoundPage />} />
         </Routes>
         <Footer />
       </div>

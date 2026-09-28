@@ -4,6 +4,7 @@ import { BookOpen, FileText, Bookmark, Clock3, Sparkles, ChevronRight } from 'lu
 import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
 import { profileData, profileActivity, profileDrafts, profileSaved, articles } from '@/data/mockData';
+import { useAuth } from '@/context/AuthContext';
 
 type Tab = 'answers' | 'drafts' | 'saved' | 'activity';
 
@@ -16,6 +17,8 @@ export default function ProfilePage() {
     { id: 'saved', label: 'Saved', icon: Bookmark },
     { id: 'activity', label: 'Activity', icon: Clock3 },
   ];
+  
+  const { user, profile, loading } = useAuth();
 
   return (
     <main>
@@ -27,20 +30,53 @@ export default function ProfilePage() {
       <section className="section-shell" style={{ paddingTop: '48px' }}>
         <div className="profile-layout">
           <div className="profile-main">
-            <div className="profile-header-card">
-              <span className="avatar profile-avatar" style={{ backgroundColor: profileData.color, height: '64px', width: '64px', fontSize: '24px' }}>{profileData.initial}</span>
-              <div className="profile-info">
-                <h2>{profileData.name}</h2>
-                <p>{profileData.bio}</p>
-                <span className="profile-joined">Joined {profileData.joined}</span>
-              </div>
-              <div className="profile-stats">
-                <div><strong>{profileData.stats.answers}</strong><span>Answers</span></div>
-                <div><strong>{profileData.stats.articles}</strong><span>Articles</span></div>
-                <div><strong>{profileData.stats.drafts}</strong><span>Drafts</span></div>
-                <div><strong>{profileData.stats.saved}</strong><span>Saved</span></div>
-              </div>
+          <div className="profile-header-card">
+            <span
+              className="avatar profile-avatar"
+              style={{
+                backgroundColor: '#cf7847',
+                height: '64px',
+                width: '64px',
+                fontSize: '24px',
+              }}
+            >
+              {loading
+                ? '…'
+                : (profile?.display_name || user?.email?.charAt(0) || 'U')
+                    .charAt(0)
+                    .toUpperCase()}
+            </span>
+
+            <div className="profile-info">
+              <h2>
+                {loading
+                  ? 'Loading...'
+                  : profile?.display_name || user?.email || 'User'}
+              </h2>
+
+              <p>
+                {profile?.bio ||
+                  'Welcome to Sanatan Board India. Share knowledge, participate in discussions, and contribute to the community.'}
+              </p>
+
+              <span className="profile-joined">
+                Joined{' '}
+                {profile?.created_at
+                  ? new Date(profile.created_at).toLocaleDateString('en-IN', {
+                      month: 'long',
+                      year: 'numeric',
+                    })
+                  : 'Recently'}
+              </span>
             </div>
+
+            <div className="profile-stats">
+              <div><strong>0</strong><span>Answers</span></div>
+              <div><strong>0</strong><span>Articles</span></div>
+              <div><strong>0</strong><span>Drafts</span></div>
+              <div><strong>0</strong><span>Saved</span></div>
+            </div>
+          </div>
 
             <div className="profile-tabs">
               {tabs.map((tab) => {

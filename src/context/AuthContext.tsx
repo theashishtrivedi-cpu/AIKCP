@@ -27,7 +27,15 @@ type AuthContextValue = {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signIn: (
+    email: string,
+    password: string
+  ) => Promise<{ error: string | null }>;
+  signUp: (
+    email: string,
+    password: string,
+    displayName: string
+  ) => Promise<{ error: string | null }>;
   signOut: () => Promise<{ error: string | null }>;
 };
 
@@ -56,38 +64,91 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    const initialise = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+    const applySession = async (nextSession: Session | null) => {
+      if (!mounted) return;
+
+      setSession(nextSession);
+
+      if (!nextSession?.user) {
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+
+      /*
+       * Load the profile outside the auth-state callback.
+       * This avoids Supabase auth callback locking/deadlock issues.
+       */
+      const nextProfile = await loadProfile(nextSession.user.id);
 
       if (!mounted) return;
 
-      setSession(session);
-
-      if (session?.user) {
-        setProfile(await loadProfile(session.user.id));
-      }
-
+      setProfile(nextProfile);
       setLoading(false);
+    };
+
+    const initialise = async () => {
+      try {
+        const {
+          data: { session: currentSession },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error('Failed to get session:', error);
+
+          if (mounted) {
+            setSession(null);
+            setProfile(null);
+            setLoading(false);
+          }
+
+          return;
+        }
+
+        await applySession(currentSession);
+      } catch (error) {
+        console.error('Auth initialisation failed:', error);
+
+        if (mounted) {
+          setSession(null);
+          setProfile(null);
+          setLoading(false);
+        }
+      }
     };
 
     initialise();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!mounted) return;
 
+      /*
+       * Do NOT call Supabase database/auth APIs directly inside
+       * the auth-state callback.
+       *
+       * Defer the profile load until after the callback returns.
+       */
       setSession(nextSession);
 
-      if (nextSession?.user) {
-        setProfile(await loadProfile(nextSession.user.id));
-      } else {
+      if (!nextSession?.user) {
         setProfile(null);
+        setLoading(false);
+        return;
       }
 
-      setLoading(false);
+      setTimeout(async () => {
+        if (!mounted) return;
+
+        const nextProfile = await loadProfile(nextSession.user.id);
+
+        if (!mounted) return;
+
+        setProfile(nextProfile);
+        setLoading(false);
+      }, 0);
     });
 
     return () => {
@@ -100,6 +161,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
+    });
+
+    return {
+      error: error?.message ?? null,
+    };
+  };
+
+  const signUp = async (
+    email: string,
+    password: string,
+    displayName: string
+  ) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          display_name: displayName.trim(),
+        },
+      },
     });
 
     return {
@@ -123,6 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         loading,
         signIn,
+        signUp,
         signOut,
       }}
     >
