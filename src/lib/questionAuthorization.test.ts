@@ -1,72 +1,75 @@
-﻿import { canCreateOrEditQuestion } from './questionAuthorization';
+import { canPerformQuestionAction } from './questionAuthorization';
 
 const cases = [
   {
-    name: 'Unauthenticated',
+    name: 'Unauthenticated - create',
     profile: null,
+    action: 'create' as const,
     expected: false,
   },
   {
-    name: 'Registered user - active',
+    name: 'User - create',
     profile: {
       role: 'user',
       status: 'active',
     },
+    action: 'create' as const,
     expected: false,
   },
   {
-    name: 'Editor - active',
-    profile: {
-      role: 'editor',
-      status: 'active',
-    },
-    expected: true,
-  },
-  {
-    name: 'Moderator - active',
+    name: 'Moderator - create',
     profile: {
       role: 'moderator',
       status: 'active',
     },
-    expected: true,
+    action: 'create' as const,
+    expected: false,
   },
   {
-    name: 'Admin - active',
+    name: 'Admin - create',
     profile: {
       role: 'admin',
       status: 'active',
     },
-    expected: true,
-  },
-  {
-    name: 'Editor - restricted',
-    profile: {
-      role: 'editor',
-      status: 'restricted',
-    },
+    action: 'create' as const,
     expected: false,
   },
   {
-    name: 'Moderator - suspended',
+    name: 'User - edit',
+    profile: {
+      role: 'user',
+      status: 'active',
+    },
+    action: 'edit' as const,
+    expected: false,
+  },
+  {
+    name: 'Moderator - edit',
     profile: {
       role: 'moderator',
-      status: 'suspended',
+      status: 'active',
     },
+    action: 'edit' as const,
     expected: false,
   },
   {
-    name: 'Admin - blocked',
+    name: 'Admin - edit',
     profile: {
       role: 'admin',
-      status: 'blocked',
+      status: 'active',
     },
+    action: 'edit' as const,
     expected: false,
   },
 ];
 
 console.table(
   cases.map((testCase) => {
-    const actual = canCreateOrEditQuestion(testCase.profile as any);
+    const actual = canPerformQuestionAction(
+      testCase.profile as any,
+      testCase.action
+    );
+
     return {
       test: testCase.name,
       expected: testCase.expected,

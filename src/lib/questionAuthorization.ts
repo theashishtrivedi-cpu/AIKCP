@@ -1,19 +1,19 @@
-﻿import type { Profile } from '@/context/AuthContext';
+import type { Profile } from '@/context/AuthContext';
 
-export const QUESTION_AUTHORING_ROLES = [
-  'editor',
-  'moderator',
-  'admin',
-] as const;
+/*
+ * Day 9 authorization boundary.
+ *
+ * Question authoring is intentionally disabled until the centralized,
+ * administrator-configurable authorization framework is implemented.
+ *
+ * This module must not encode role-specific authorization rules.
+ */
 
-export function canCreateOrEditQuestion(
-  profile: Profile | null
+export type QuestionAction = 'create' | 'edit';
+
+export function canPerformQuestionAction(
+  _profile: Profile | null,
+  _action: QuestionAction
 ): boolean {
-  if (!profile) return false;
-
-  if (profile.status !== 'active') return false;
-
-  return QUESTION_AUTHORING_ROLES.includes(
-    profile.role as (typeof QUESTION_AUTHORING_ROLES)[number]
-  );
+  return false;
 }
