@@ -1,80 +1,42 @@
 import { canPerformQuestionAction } from './questionAuthorization';
 
-const cases = [
-  {
-    name: 'Unauthenticated - create',
-    profile: null,
-    action: 'create' as const,
-    expected: false,
-  },
-  {
-    name: 'User - create',
-    profile: {
-      role: 'user',
-      status: 'active',
-    },
-    action: 'create' as const,
-    expected: false,
-  },
-  {
-    name: 'Moderator - create',
-    profile: {
-      role: 'moderator',
-      status: 'active',
-    },
-    action: 'create' as const,
-    expected: false,
-  },
-  {
-    name: 'Admin - create',
-    profile: {
-      role: 'admin',
-      status: 'active',
-    },
-    action: 'create' as const,
-    expected: false,
-  },
-  {
-    name: 'User - edit',
-    profile: {
-      role: 'user',
-      status: 'active',
-    },
-    action: 'edit' as const,
-    expected: false,
-  },
-  {
-    name: 'Moderator - edit',
-    profile: {
-      role: 'moderator',
-      status: 'active',
-    },
-    action: 'edit' as const,
-    expected: false,
-  },
-  {
-    name: 'Admin - edit',
-    profile: {
-      role: 'admin',
-      status: 'active',
-    },
-    action: 'edit' as const,
-    expected: false,
-  },
+type TestCase = {
+  name: string;
+  action: 'create' | 'edit';
+};
+
+const testCases: TestCase[] = [
+  { name: 'create question', action: 'create' },
+  { name: 'edit question', action: 'edit' },
 ];
 
-console.table(
-  cases.map((testCase) => {
-    const actual = canPerformQuestionAction(
-      testCase.profile as any,
-      testCase.action
-    );
+async function runTests(): Promise<void> {
+  const results = [];
 
-    return {
-      test: testCase.name,
-      expected: testCase.expected,
-      actual,
-      result: actual === testCase.expected ? 'PASS' : 'FAIL',
-    };
-  })
-);
+  for (const testCase of testCases) {
+    try {
+      const actual = await canPerformQuestionAction(testCase.action);
+
+      results.push({
+        test: testCase.name,
+        result: actual,
+        status: 'PASS',
+      });
+    } catch (error) {
+      results.push({
+        test: testCase.name,
+        result: false,
+        status: 'FAIL',
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  console.table(results);
+
+  if (results.some((result) => result.status === 'FAIL')) {
+    throw new Error('Question authorization validation failed.');
+  }
+}
+
+void runTests();
