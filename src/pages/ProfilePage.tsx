@@ -1,9 +1,9 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, FileText, Bookmark, Clock3, Sparkles, ChevronRight } from 'lucide-react';
 import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
-import { profileData, profileActivity, profileDrafts, profileSaved, articles } from '@/data/mockData';
+import { profileActivity, profileDrafts, profileSaved, articles } from '@/data/mockData';
 import { useAuth } from '@/context/AuthContext';
 
 type Tab = 'answers' | 'drafts' | 'saved' | 'activity';
@@ -41,7 +41,7 @@ export default function ProfilePage() {
               }}
             >
               {loading
-                ? '…'
+                ? 'â€¦'
                 : (profile?.display_name || user?.email?.charAt(0) || 'U')
                     .charAt(0)
                     .toUpperCase()}
@@ -95,7 +95,7 @@ export default function ProfilePage() {
                 <div className="search-articles-list">
                   {articles.map((a) => (
                     <Link to={`/articles/${a.id}`} className="answer-preview" key={a.id}>
-                      <div className="answer-preview-head"><span className="avatar" style={{ backgroundColor: a.authorColor }}>{a.authorInitial}</span><div><strong>{a.title}</strong><span className="answer-author">{a.likes} likes · {a.comments.length} comments · {a.publishedAt}</span></div></div>
+                      <div className="answer-preview-head"><span className="avatar" style={{ backgroundColor: a.authorColor }}>{a.authorInitial}</span><div><strong>{a.title}</strong><span className="answer-author">{a.likes} likes Â· {a.comments.length} comments Â· {a.publishedAt}</span></div></div>
                       <p>{a.excerpt}</p>
                     </Link>
                   ))}
@@ -110,7 +110,7 @@ export default function ProfilePage() {
                   {profileDrafts.map((draft) => (
                     <div className="draft-item" key={draft.id}>
                       <FileText size={18} />
-                      <div><strong>{draft.title}</strong><span>{draft.words} words · Updated {draft.updated}</span></div>
+                      <div><strong>{draft.title}</strong><span>{draft.words} words Â· Updated {draft.updated}</span></div>
                       <button className="outline-button" style={{ width: 'auto', padding: '8px 16px' }}>Continue</button>
                     </div>
                   ))}
@@ -125,7 +125,7 @@ export default function ProfilePage() {
                   {profileSaved.map((item) => (
                     <Link to={item.type === 'Article' ? '/articles/a1' : item.type === 'Question' ? '/questions' : '/current-affairs'} className="saved-item" key={item.id}>
                       <Bookmark size={16} />
-                      <div><strong>{item.title}</strong><span>{item.type} · {item.time}</span></div>
+                      <div><strong>{item.title}</strong><span>{item.type} Â· {item.time}</span></div>
                       <ChevronRight size={16} />
                     </Link>
                   ))}
@@ -169,3 +169,4 @@ export default function ProfilePage() {
     </main>
   );
 }
+
