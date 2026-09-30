@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+﻿import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { rpcMock } = vi.hoisted(() => ({
   rpcMock: vi.fn(),
@@ -10,25 +10,25 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 
-import { canPerformQuestionAction } from './questionAuthorization';
+import { canPerformCommentAction } from './commentAuthorization';
 
-describe('questionAuthorization', () => {
+describe('commentAuthorization', () => {
   beforeEach(() => {
     rpcMock.mockReset();
   });
 
-  it('allows an authorized question action', async () => {
+  it('allows an authorized comment action', async () => {
     rpcMock.mockResolvedValue({
       data: true,
       error: null,
     });
 
     await expect(
-      canPerformQuestionAction('create'),
+      canPerformCommentAction('create'),
     ).resolves.toBe(true);
 
     expect(rpcMock).toHaveBeenCalledWith('has_permission', {
-      p_resource: 'questions',
+      p_resource: 'comments',
       p_action: 'create',
     });
   });
@@ -40,7 +40,7 @@ describe('questionAuthorization', () => {
     });
 
     await expect(
-      canPerformQuestionAction('create'),
+      canPerformCommentAction('create'),
     ).resolves.toBe(false);
   });
 
@@ -51,7 +51,7 @@ describe('questionAuthorization', () => {
     });
 
     await expect(
-      canPerformQuestionAction('create'),
+      canPerformCommentAction('create'),
     ).resolves.toBe(false);
   });
 });

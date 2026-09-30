@@ -1,10 +1,12 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, MessageCircle, Clock3 } from 'lucide-react';
 import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
 import AnswerList from '@/components/AnswerList';
 import AnswerComposer from '@/components/AnswerComposer';
+import CommentComposer from '@/components/CommentComposer';
+import CommentList from '@/components/CommentList';
 import { getQuestionByUuid, type RealQuestion } from '@/lib/questionService';
 
 function formatDate(value: string) {
@@ -17,6 +19,7 @@ export default function RealQuestionDetailPage() {
   const [question, setQuestion] = useState<RealQuestion | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [commentRefreshKey, setCommentRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -120,6 +123,26 @@ export default function RealQuestionDetailPage() {
               <AnswerComposer
                 questionId={question.id}
                 onCreated={() => setRefreshKey((value) => value + 1)}
+              />
+            </div>
+
+            <div style={{ marginTop: 40 }}>
+              <SectionHeading
+                eyebrow="Discussion"
+                title="Comments"
+              />
+
+              <CommentList
+                contentId={question.id}
+                refreshKey={commentRefreshKey}
+              />
+
+              <CommentComposer
+                contentId={question.id}
+                contentType="question"
+                onCreated={() =>
+                  setCommentRefreshKey((value) => value + 1)
+                }
               />
             </div>
           </div>

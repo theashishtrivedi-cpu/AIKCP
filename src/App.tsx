@@ -1,4 +1,4 @@
-﻿import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import HomePage from '@/pages/HomePage';
@@ -16,11 +16,24 @@ import ProfilePage from '@/pages/ProfilePage';
 import NotificationsPage from '@/pages/NotificationsPage';
 import AdminPage from '@/pages/AdminPage';
 import LoginPage from '@/pages/LoginPage';
+import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import SignupPage from '@/pages/SignupPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import NotFoundPage from '@/pages/NotFoundPage';
 
 function App() {
+  const isRecoverySession =
+    typeof window !== 'undefined' &&
+    window.location.hash.includes('type=recovery');
+
+  if (isRecoverySession) {
+    return (
+      <BrowserRouter>
+        <ResetPasswordPage />
+      </BrowserRouter>
+    );
+  }
+
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-[#fbfaf7] text-[#182331] selection:bg-[#f5b544] selection:text-[#33200f]">
@@ -38,6 +51,7 @@ function App() {
           <Route path="/sanatan-board/:sectionId" element={<SanatanBoardPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/profile" element={<ProfilePage />} />
@@ -53,6 +67,3 @@ function App() {
 }
 
 export default App;
-
-
-
