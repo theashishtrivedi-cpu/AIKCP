@@ -1,8 +1,8 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+﻿import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import HomePage from '@/pages/HomePage';
-import QuestionsPage from '@/pages/QuestionsPage';
+import RealQuestionsPage from '@/pages/RealQuestionsPage';
 import QuestionDetailPage from '@/pages/QuestionDetailPage';
 import RealQuestionDetailPage from '@/pages/RealQuestionDetailPage';
 import ArticlePage from '@/pages/ArticlePage';
@@ -40,8 +40,9 @@ function App() {
         <Header />
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/questions" element={<QuestionsPage />} />
-          <Route path="/questions/:questionId" element={<QuestionDetailPage />} />`r`n          <Route path="/real-questions/:questionId" element={<RealQuestionDetailPage />} />
+          <Route path="/questions" element={<RealQuestionsPage />} />
+          <Route path="/questions/:questionId" element={<RealQuestionDetailPage />} />
+          <Route path="/real-questions/:questionId" element={<RealQuestionDetailPage />} />
           <Route path="/articles/:articleId" element={<ArticlePage />} />
           <Route path="/categories/:categoryId" element={<CategoryPage />} />
           <Route path="/categories/:categoryId/:subcategoryId" element={<SubcategoryPage />} />
@@ -67,3 +68,5 @@ function App() {
 }
 
 export default App;
+
+
