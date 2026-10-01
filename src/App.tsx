@@ -11,6 +11,7 @@ import SubcategoryPage from '@/pages/SubcategoryPage';
 import CurrentAffairsPage from '@/pages/CurrentAffairsPage';
 import CurrentAffairsDetailPage from '@/pages/CurrentAffairsDetailPage';
 import SanatanBoardPage from '@/pages/SanatanBoardPage';
+import SanatanBoardContentPage from '@/pages/SanatanBoardContentPage';
 import SearchPage from '@/pages/SearchPage';
 import ProfilePage from '@/pages/ProfilePage';
 import NotificationsPage from '@/pages/NotificationsPage';
@@ -48,8 +49,20 @@ function App() {
           <Route path="/categories/:categoryId/:subcategoryId" element={<SubcategoryPage />} />
           <Route path="/current-affairs" element={<CurrentAffairsPage />} />
           <Route path="/current-affairs/:articleId" element={<CurrentAffairsDetailPage />} />
-          <Route path="/sanatan-board" element={<SanatanBoardPage />} />
-          <Route path="/sanatan-board/:sectionId" element={<SanatanBoardPage />} />
+
+          <Route
+            path="/sanatan-board"
+            element={<SanatanBoardPage />}
+          />
+          <Route
+            path="/sanatan-board/content/:contentId"
+            element={<SanatanBoardContentPage />}
+          />
+          <Route
+            path="/sanatan-board/:sectionId"
+            element={<SanatanBoardPage />}
+          />
+
           <Route path="/search" element={<SearchPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
