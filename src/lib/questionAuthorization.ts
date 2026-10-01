@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 
-export type QuestionAction = 'create' | 'edit';
+export type QuestionAction = 'create' | 'edit' | 'moderate';
 
 /**
  * Resolves question authorization through the centralized

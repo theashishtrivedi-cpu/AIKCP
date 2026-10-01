@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LayoutDashboard, Users, MessageCircle, FolderTree, Shield, Newspaper, Rss, Settings, ChevronRight } from 'lucide-react';
 import PageHero from '@/components/PageHero';
+import { useAuth } from '@/context/AuthContext';
 import SectionHeading from '@/components/SectionHeading';
-import { adminStats, adminUsers, moderationQueue, newsSources, topics, questions } from '@/data/mockData';
+import { adminStats, adminUsers, newsSources, topics, questions } from '@/data/mockData';
+import { canPerformQuestionAction } from '@/lib/questionAuthorization';
+import { listPendingQuestions, moderateQuestion, type RealQuestion } from '@/lib/questionService';
 
 type AdminTab = 'overview' | 'users' | 'questions' | 'categories' | 'moderation' | 'current-affairs' | 'news-sources' | 'settings';
 
@@ -18,7 +21,80 @@ const adminTabs: { id: AdminTab; label: string; icon: typeof Users }[] = [
 ];
 
 export default function AdminPage() {
+  const { profile } = useAuth();
+
+
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
+  const [pendingQuestions, setPendingQuestions] = useState<RealQuestion[]>([]);
+  const [moderationLoading, setModerationLoading] = useState(false);
+  const [moderationError, setModerationError] = useState<string | null>(null);
+  const [moderationActionId, setModerationActionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeTab !== 'moderation') {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadModerationQueue() {
+      setModerationLoading(true);
+      setModerationError(null);
+
+      const authorized = await canPerformQuestionAction('moderate');
+
+      if (!authorized) {
+        if (!cancelled) {
+          setPendingQuestions([]);
+          setModerationError(
+            'You are not authorized to access question moderation.'
+          );
+          setModerationLoading(false);
+        }
+        return;
+      }
+
+      const result = await listPendingQuestions();
+
+      if (cancelled) {
+        return;
+      }
+
+      if (result.error) {
+        setPendingQuestions([]);
+        setModerationError(result.error);
+      } else {
+        setPendingQuestions(result.data);
+      }
+
+      setModerationLoading(false);
+    }
+
+    void loadModerationQueue();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab]);
+
+  if (
+    !profile ||
+    profile.status !== 'active' ||
+    (profile.role !== 'moderator' && profile.role !== 'admin')
+  ) {
+    return (
+      <main className="mx-auto flex min-h-[70vh] max-w-2xl items-center justify-center px-5">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold text-[#182331]">
+            Access denied
+          </h1>
+          <p className="mt-2 text-sm text-[#68717c]">
+            You do not have permission to access the administration area.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main>
@@ -53,17 +129,6 @@ export default function AdminPage() {
                       <span className="admin-stat-change">{stat.change}</span>
                     </div>
                   ))}
-                </div>
-                <div style={{ marginTop: '40px' }}>
-                  <SectionHeading eyebrow="Action needed" title="Pending Moderation" action="Go to Moderation" actionTo="/admin" />
-                  <div className="admin-table">
-                    {moderationQueue.slice(0, 3).map((item) => (
-                      <div className="admin-table-row" key={item.id}>
-                        <span className={`severity-badge severity-${item.severity}`}>{item.severity}</span>
-                        <div><strong>{item.content}</strong><span>{item.author} · {item.reason} · {item.time}</span></div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </div>
             )}
@@ -122,21 +187,101 @@ export default function AdminPage() {
             {activeTab === 'moderation' && (
               <div>
                 <SectionHeading eyebrow="Queue" title="Moderation" />
-                <div className="admin-table">
-                  {moderationQueue.map((item) => (
-                    <div className="admin-table-row" key={item.id}>
-                      <span className={`severity-badge severity-${item.severity}`}>{item.severity}</span>
-                      <div><strong>{item.content}</strong><span>{item.type} · {item.author} · {item.reason} · {item.time}</span></div>
-                      <div className="admin-row-actions">
-                        <button className="admin-action approve">Approve</button>
-                        <button className="admin-action reject">Reject</button>
-                      </div>
+
+                {moderationLoading && (
+                  <div className="admin-table">
+                    <div className="admin-table-row">
+                      <span>Loading pending questions...</span>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
+
+                {!moderationLoading && moderationError && (
+                  <div className="admin-table">
+                    <div className="admin-table-row">
+                      <span>{moderationError}</span>
+                    </div>
+                  </div>
+                )}
+
+                {!moderationLoading && !moderationError && pendingQuestions.length === 0 && (
+                  <div className="admin-table">
+                    <div className="admin-table-row">
+                      <span>No pending questions require moderation.</span>
+                    </div>
+                  </div>
+                )}
+
+                {!moderationLoading && !moderationError && pendingQuestions.length > 0 && (
+                  <div className="admin-table">
+                    {pendingQuestions.map((question) => (
+                      <div className="admin-table-row" key={question.id}>
+                        <div>
+                          <strong>{question.title}</strong>
+                          <span>
+                            {question.body} · Submitted {new Date(question.created_at).toLocaleString()}
+                          </span>
+                        </div>
+
+                        <div className="admin-row-actions">
+                          <button
+                            className="admin-action approve"
+                            disabled={moderationActionId === question.id}
+                            onClick={async () => {
+                              setModerationActionId(question.id);
+                              setModerationError(null);
+
+                              const result = await moderateQuestion(
+                                question.id,
+                                'published'
+                              );
+
+                              if (result.error) {
+                                setModerationError(result.error);
+                              } else {
+                                setPendingQuestions((current) =>
+                                  current.filter((item) => item.id !== question.id)
+                                );
+                              }
+
+                              setModerationActionId(null);
+                            }}
+                          >
+                            {moderationActionId === question.id ? 'Processing...' : 'Approve'}
+                          </button>
+
+                          <button
+                            className="admin-action reject"
+                            disabled={moderationActionId === question.id}
+                            onClick={async () => {
+                              setModerationActionId(question.id);
+                              setModerationError(null);
+
+                              const result = await moderateQuestion(
+                                question.id,
+                                'rejected'
+                              );
+
+                              if (result.error) {
+                                setModerationError(result.error);
+                              } else {
+                                setPendingQuestions((current) =>
+                                  current.filter((item) => item.id !== question.id)
+                                );
+                              }
+
+                              setModerationActionId(null);
+                            }}
+                          >
+                            {moderationActionId === question.id ? 'Processing...' : 'Reject'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
-
             {activeTab === 'current-affairs' && (
               <div>
                 <SectionHeading eyebrow="News management" title="Current Affairs" />
