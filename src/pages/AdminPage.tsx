@@ -3,9 +3,10 @@ import { LayoutDashboard, Users, MessageCircle, FolderTree, Shield, Newspaper, R
 import PageHero from '@/components/PageHero';
 import { useAuth } from '@/context/AuthContext';
 import SectionHeading from '@/components/SectionHeading';
-import { adminStats, adminUsers, newsSources, topics, questions } from '@/data/mockData';
+import { adminStats, adminUsers, topics, questions } from '@/data/mockData';
 import { canPerformQuestionAction } from '@/lib/questionAuthorization';
 import { listPendingQuestions, moderateQuestion, type RealQuestion } from '@/lib/questionService';
+import { listNewsSources, type NewsSource } from '@/lib/newsSourceService';
 
 type AdminTab = 'overview' | 'users' | 'questions' | 'categories' | 'moderation' | 'current-affairs' | 'news-sources' | 'settings';
 
@@ -29,6 +30,9 @@ export default function AdminPage() {
   const [moderationLoading, setModerationLoading] = useState(false);
   const [moderationError, setModerationError] = useState<string | null>(null);
   const [moderationActionId, setModerationActionId] = useState<string | null>(null);
+  const [newsSources, setNewsSources] = useState<NewsSource[]>([]);
+  const [newsSourcesLoading, setNewsSourcesLoading] = useState(false);
+  const [newsSourcesError, setNewsSourcesError] = useState<string | null>(null);
 
   useEffect(() => {
     if (activeTab !== 'moderation') {
@@ -96,6 +100,40 @@ export default function AdminPage() {
     );
   }
 
+
+  useEffect(() => {
+    if (activeTab !== 'news-sources') {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadNewsSources() {
+      setNewsSourcesLoading(true);
+      setNewsSourcesError(null);
+
+      const result = await listNewsSources();
+
+      if (cancelled) {
+        return;
+      }
+
+      if (result.error) {
+        setNewsSources([]);
+        setNewsSourcesError(result.error);
+      } else {
+        setNewsSources(result.data);
+      }
+
+      setNewsSourcesLoading(false);
+    }
+
+    void loadNewsSources();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab]);
   return (
     <main>
       <PageHero
@@ -307,13 +345,36 @@ export default function AdminPage() {
               <div>
                 <SectionHeading eyebrow="Feeds" title="News Sources" />
                 <div className="admin-table">
-                  <div className="admin-table-head"><span>Source</span><span>Status</span><span>Articles</span><span>Last Sync</span></div>
-                  {newsSources.map((src) => (
-                    <div className="admin-table-row" key={src.name}>
-                      <div><strong>{src.name}</strong></div>
-                      <span className={`status-badge status-${src.status.toLowerCase()}`}>{src.status}</span>
-                      <span>{src.articles}</span>
-                      <span>{src.lastSync}</span>
+                  <div className="admin-table-head"><span>Source</span><span>Status</span><span>Type</span><span>Approved</span></div>
+                  {newsSourcesLoading && (
+                    <div className="admin-table-row">
+                      <span>Loading news sources...</span>
+                    </div>
+                  )}
+
+                  {newsSourcesError && (
+                    <div className="admin-table-row">
+                      <span>{newsSourcesError}</span>
+                    </div>
+                  )}
+
+                  {!newsSourcesLoading && !newsSourcesError && newsSources.length === 0 && (
+                    <div className="admin-table-row">
+                      <span>No news sources configured.</span>
+                    </div>
+                  )}
+
+                  {!newsSourcesLoading && !newsSourcesError && newsSources.map((src) => (
+                    <div className="admin-table-row" key={src.id}>
+                      <div>
+                        <strong>{src.name}</strong>
+                        <small>{src.url}</small>
+                      </div>
+                      <span className={`status-badge status-${src.is_active ? 'active' : 'paused'}`}>
+                        {src.is_active ? 'Active' : 'Paused'}
+                      </span>
+                      <span>{src.source_type}</span>
+                      <span>{src.is_approved ? 'Yes' : 'No'}</span>
                     </div>
                   ))}
                 </div>
