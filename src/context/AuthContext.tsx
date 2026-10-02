@@ -18,7 +18,7 @@ export type Profile = {
   language_code: string;
   created_at: string;
   updated_at: string;
-  role: 'user' | 'editor' | 'moderator' | 'admin';
+  role: 'user' | 'moderator' | 'admin';
   status: 'restricted' | 'active' | 'suspended';
 };
 

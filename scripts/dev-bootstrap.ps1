@@ -1,4 +1,4 @@
-﻿# AI-KCP Local Development Auth Bootstrap v1.1
+# AI-KCP Local Development Auth Bootstrap v1.1
 #
 # Purpose:
 #   Recreate the minimum development Auth dataset for local AI-KCP work.
@@ -41,7 +41,7 @@ Write-Host "Local API: $apiUrl" -ForegroundColor Green
 Write-Host ""
 
 $adminPassword = Read-Host "Password for aikcp.admin@example.test" -AsSecureString
-$editorPassword = Read-Host "Password for aikcp.editor@example.test" -AsSecureString
+$moderatorPassword = Read-Host "Password for aikcp.moderator@example.test" -AsSecureString
 $userPassword = Read-Host "Password for aikcp.user@example.test" -AsSecureString
 
 function ConvertFrom-SecureStringPlainText {
@@ -60,7 +60,7 @@ function ConvertFrom-SecureStringPlainText {
 }
 
 $adminPasswordPlain = ConvertFrom-SecureStringPlainText $adminPassword
-$editorPasswordPlain = ConvertFrom-SecureStringPlainText $editorPassword
+$moderatorPasswordPlain = ConvertFrom-SecureStringPlainText $moderatorPassword
 $userPasswordPlain = ConvertFrom-SecureStringPlainText $userPassword
 
 $headers = @{
@@ -78,11 +78,11 @@ $users = @(
         display_name = "AI-KCP Admin"
     },
     @{
-        email = "aikcp.editor@example.test"
-        password = $editorPasswordPlain
-        role = "editor"
+        email = "aikcp.moderator@example.test"
+        password = $moderatorPasswordPlain
+        role = "moderator"
         status = "active"
-        display_name = "AI-KCP Editor"
+        display_name = "AI-KCP Moderator"
     },
     @{
         email = "aikcp.user@example.test"
@@ -178,7 +178,7 @@ foreach ($user in $users) {
 }
 
 $adminPasswordPlain = $null
-$editorPasswordPlain = $null
+$moderatorPasswordPlain = $null
 $userPasswordPlain = $null
 $secretKey = $null
 
