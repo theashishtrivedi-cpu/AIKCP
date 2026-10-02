@@ -78,7 +78,7 @@ export default function SanatanBoardPage() {
       setLoadingContent(true);
       setError(null);
 
-      const result = await listBoardContent(selectedSection);
+      const result = await listBoardContent(selectedSection ?? undefined);
 
       if (cancelled) return;
 

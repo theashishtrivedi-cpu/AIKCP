@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Search } from 'lucide-react';
 import PageHero from '@/components/PageHero';
 import EmptyState from '@/components/EmptyState';
 import {
@@ -87,8 +87,9 @@ export default function SanatanBoardContentPage() {
 
         <section className="section-shell">
           <EmptyState
+            icon={Search}
             title="Board content unavailable"
-            description={
+            message={
               error ||
               'The requested Board content does not exist or is not currently published.'
             }

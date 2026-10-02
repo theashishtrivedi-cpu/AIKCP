@@ -7,6 +7,12 @@ import { adminStats, adminUsers, topics, questions } from '@/data/mockData';
 import { canPerformQuestionAction } from '@/lib/questionAuthorization';
 import { listPendingQuestions, moderateQuestion, type RealQuestion } from '@/lib/questionService';
 import { listNewsSources, type NewsSource } from '@/lib/newsSourceService';
+import {
+  listPendingCurrentAffairs,
+  publishCurrentAffair,
+  rejectCurrentAffair,
+} from '@/lib/currentAffairsEditorialService';
+import type { CurrentAffair } from '@/lib/currentAffairsService';
 
 type AdminTab = 'overview' | 'users' | 'questions' | 'categories' | 'moderation' | 'current-affairs' | 'news-sources' | 'settings';
 
@@ -33,6 +39,10 @@ export default function AdminPage() {
   const [newsSources, setNewsSources] = useState<NewsSource[]>([]);
   const [newsSourcesLoading, setNewsSourcesLoading] = useState(false);
   const [newsSourcesError, setNewsSourcesError] = useState<string | null>(null);
+  const [pendingCurrentAffairs, setPendingCurrentAffairs] = useState<CurrentAffair[]>([]);
+  const [currentAffairsLoading, setCurrentAffairsLoading] = useState(false);
+  const [currentAffairsError, setCurrentAffairsError] = useState<string | null>(null);
+  const [currentAffairActionId, setCurrentAffairActionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (activeTab !== 'moderation') {
@@ -75,6 +85,41 @@ export default function AdminPage() {
     }
 
     void loadModerationQueue();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab]);
+
+
+  useEffect(() => {
+    if (activeTab !== 'current-affairs') {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadCurrentAffairsQueue() {
+      setCurrentAffairsLoading(true);
+      setCurrentAffairsError(null);
+
+      const result = await listPendingCurrentAffairs();
+
+      if (cancelled) {
+        return;
+      }
+
+      if (result.error) {
+        setPendingCurrentAffairs([]);
+        setCurrentAffairsError(result.error);
+      } else {
+        setPendingCurrentAffairs(result.data);
+      }
+
+      setCurrentAffairsLoading(false);
+    }
+
+    void loadCurrentAffairsQueue();
 
     return () => {
       cancelled = true;
@@ -323,21 +368,112 @@ export default function AdminPage() {
             {activeTab === 'current-affairs' && (
               <div>
                 <SectionHeading eyebrow="News management" title="Current Affairs" />
-                <div className="admin-table">
-                  <div className="admin-table-head"><span>Headline</span><span>Source</span><span>Category</span><span>Time</span></div>
-                  {[
-                    ['Restoration work begins at 12th century temple', 'India', 'Heritage', '2 hours ago'],
-                    ['Traditional knowledge systems gain recognition', 'World', 'Policy', '5 hours ago'],
-                    ['Digital archive for Sanskrit manuscripts', 'Culture', 'Heritage', '2 days ago'],
-                  ].map(([h, s, c, t], i) => (
-                    <div className="admin-table-row" key={i}>
-                      <div><strong>{h}</strong></div>
-                      <span>{s}</span>
-                      <span>{c}</span>
-                      <span>{t}</span>
+
+                {currentAffairsLoading && (
+                  <div className="admin-table">
+                    <div className="admin-table-row">
+                      <span>Loading pending current affairs...</span>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
+
+                {currentAffairsError && (
+                  <div className="admin-table">
+                    <div className="admin-table-row">
+                      <span>{currentAffairsError}</span>
+                    </div>
+                  </div>
+                )}
+
+                {!currentAffairsLoading &&
+                  !currentAffairsError &&
+                  pendingCurrentAffairs.length === 0 && (
+                    <div className="admin-table">
+                      <div className="admin-table-row">
+                        <span>No pending Current Affairs require review.</span>
+                      </div>
+                    </div>
+                  )}
+
+                {!currentAffairsLoading &&
+                  !currentAffairsError &&
+                  pendingCurrentAffairs.length > 0 && (
+                    <div className="admin-table">
+                      <div className="admin-table-head">
+                        <span>Headline</span>
+                        <span>Source</span>
+                        <span>Ingested</span>
+                        <span>Actions</span>
+                      </div>
+
+                      {pendingCurrentAffairs.map((item) => (
+                        <div className="admin-table-row" key={item.id}>
+                          <div>
+                            <strong>{item.title}</strong>
+                            {item.summary && <small>{item.summary}</small>}
+                          </div>
+
+                          <span>
+                            {item.source_title || 'Unknown source'}
+                          </span>
+
+                          <span>
+                            {new Date(item.ingested_at).toLocaleString('en-IN')}
+                          </span>
+
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              className="admin-action"
+                              disabled={currentAffairActionId === item.id}
+                              onClick={async () => {
+                                setCurrentAffairActionId(item.id);
+                                setCurrentAffairsError(null);
+
+                                const result = await publishCurrentAffair(item.id);
+
+                                if (result.error) {
+                                  setCurrentAffairsError(result.error);
+                                } else {
+                                  setPendingCurrentAffairs((current) =>
+                                    current.filter((entry) => entry.id !== item.id)
+                                  );
+                                }
+
+                                setCurrentAffairActionId(null);
+                              }}
+                            >
+                              {currentAffairActionId === item.id ? 'Processing...' : 'Publish'}
+                            </button>
+
+                            <button
+                              type="button"
+                              className="admin-action reject"
+                              disabled={currentAffairActionId === item.id}
+                              onClick={async () => {
+                                setCurrentAffairActionId(item.id);
+                                setCurrentAffairsError(null);
+
+                                const result = await rejectCurrentAffair(item.id);
+
+                                if (result.error) {
+                                  setCurrentAffairsError(result.error);
+                                } else {
+                                  setPendingCurrentAffairs((current) =>
+                                    current.filter((entry) => entry.id !== item.id)
+                                  );
+                                }
+
+                                setCurrentAffairActionId(null);
+                              }}
+                            >
+                              {currentAffairActionId === item.id ? 'Processing...' : 'Reject'}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
               </div>
             )}
 
