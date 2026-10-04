@@ -26,3 +26,4 @@ dist-ssr
 scripts/*.local.ps1
 # Local Supabase Studio query snippets
 supabase/snippets/
+supabase/functions/.env
