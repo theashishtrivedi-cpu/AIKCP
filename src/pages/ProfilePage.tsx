@@ -1,15 +1,36 @@
-﻿import { useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, FileText, Bookmark, Clock3, Sparkles, ChevronRight } from 'lucide-react';
+import {
+  BookOpen,
+  FileText,
+  Bookmark,
+  Clock3,
+  Sparkles,
+  ChevronRight,
+} from 'lucide-react';
 import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
-import { profileActivity, profileDrafts, profileSaved, articles } from '@/data/mockData';
+import {
+  profileActivity,
+  profileDrafts,
+  articles,
+} from '@/data/mockData';
 import { useAuth } from '@/context/AuthContext';
+import {
+  listCurrentAffairBookmarks,
+  type CurrentAffairBookmark,
+} from '@/lib/bookmarkService';
 
 type Tab = 'answers' | 'drafts' | 'saved' | 'activity';
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<Tab>('answers');
+
+  const { user, profile, loading } = useAuth();
+
+  const [savedItems, setSavedItems] = useState<CurrentAffairBookmark[]>([]);
+  const [savedLoading, setSavedLoading] = useState(false);
+  const [savedError, setSavedError] = useState<string | null>(null);
 
   const tabs: { id: Tab; label: string; icon: typeof BookOpen }[] = [
     { id: 'answers', label: 'My Answers', icon: BookOpen },
@@ -17,8 +38,38 @@ export default function ProfilePage() {
     { id: 'saved', label: 'Saved', icon: Bookmark },
     { id: 'activity', label: 'Activity', icon: Clock3 },
   ];
-  
-  const { user, profile, loading } = useAuth();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSavedItems() {
+      if (loading) return;
+
+      if (!user) {
+        setSavedItems([]);
+        setSavedError('Sign in to view your saved Current Affairs.');
+        setSavedLoading(false);
+        return;
+      }
+
+      setSavedLoading(true);
+      setSavedError(null);
+
+      const result = await listCurrentAffairBookmarks();
+
+      if (cancelled) return;
+
+      setSavedItems(result.data);
+      setSavedError(result.error);
+      setSavedLoading(false);
+    }
+
+    void loadSavedItems();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, loading]);
 
   return (
     <main>
@@ -74,7 +125,7 @@ export default function ProfilePage() {
               <div><strong>0</strong><span>Answers</span></div>
               <div><strong>0</strong><span>Articles</span></div>
               <div><strong>0</strong><span>Drafts</span></div>
-              <div><strong>0</strong><span>Saved</span></div>
+              <div><strong>{savedItems.length}</strong><span>Saved</span></div>
             </div>
           </div>
 
@@ -121,15 +172,50 @@ export default function ProfilePage() {
             {activeTab === 'saved' && (
               <div className="profile-tab-content">
                 <SectionHeading eyebrow="Bookmarked" title="Saved Content" />
-                <div className="saved-list">
-                  {profileSaved.map((item) => (
-                    <Link to={item.type === 'Article' ? '/articles/a1' : item.type === 'Question' ? '/questions' : '/current-affairs'} className="saved-item" key={item.id}>
-                      <Bookmark size={16} />
-                      <div><strong>{item.title}</strong><span>{item.type} Â· {item.time}</span></div>
-                      <ChevronRight size={16} />
-                    </Link>
-                  ))}
-                </div>
+
+                {savedLoading && (
+                  <p role="status">Loading your saved Current Affairs...</p>
+                )}
+
+                {savedError && (
+                  <p role="alert">
+                    {savedError}
+                    {!user && (
+                      <>
+                        {' '}
+                        <Link to="/login">Sign in</Link>
+                      </>
+                    )}
+                  </p>
+                )}
+
+                {!savedLoading && !savedError && savedItems.length === 0 && (
+                  <p>You have not saved any Current Affairs articles yet.</p>
+                )}
+
+                {!savedLoading && savedItems.length > 0 && (
+                  <div className="saved-list">
+                    {savedItems.map((item) => (
+                      <Link
+                        to={`/current-affairs/${item.content_id}`}
+                        className="saved-item"
+                        key={item.id}
+                      >
+                        <Bookmark size={16} />
+                        <div>
+                          <strong>{item.title}</strong>
+                          <span>
+                            Current Affairs
+                            {item.source_title ? ` · ${item.source_title}` : ''}
+                            {' · Saved '}
+                            {new Date(item.created_at).toLocaleDateString('en-IN')}
+                          </span>
+                        </div>
+                        <ChevronRight size={16} />
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

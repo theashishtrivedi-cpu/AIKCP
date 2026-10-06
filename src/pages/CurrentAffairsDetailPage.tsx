@@ -1,9 +1,19 @@
-﻿import { useEffect, useState } from 'react';
+﻿
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowRight, Clock3, Search } from 'lucide-react';
+import { ArrowRight, Bookmark, Clock3, Search } from 'lucide-react';
 import PageHero from '@/components/PageHero';
 import EmptyState from '@/components/EmptyState';
-import { getCurrentAffairById, type CurrentAffair } from '@/lib/currentAffairsService';
+import { useAuth } from '@/context/AuthContext';
+import {
+  getCurrentAffairById,
+  type CurrentAffair,
+} from '@/lib/currentAffairsService';
+import {
+  isCurrentAffairBookmarked,
+  saveCurrentAffairBookmark,
+  removeCurrentAffairBookmark,
+} from '@/lib/bookmarkService';
 
 function formatPublishedTime(publishedAt: string | null): string {
   if (!publishedAt) {
@@ -18,17 +28,26 @@ function formatPublishedTime(publishedAt: string | null): string {
 
 export default function CurrentAffairsDetailPage() {
   const { articleId } = useParams<{ articleId: string }>();
+  const { user, loading: authLoading } = useAuth();
 
   const [article, setArticle] = useState<CurrentAffair | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
+  const [bookmarkBusy, setBookmarkBusy] = useState(false);
+  const [bookmarkError, setBookmarkError] = useState<string | null>(null);
+  const [bookmarkMessage, setBookmarkMessage] = useState<string | null>(null);
+
+  // Load the published article.
   useEffect(() => {
     let cancelled = false;
 
     async function loadArticle() {
       if (!articleId) {
         setArticle(null);
+        setError('No article ID was provided.');
         setLoading(false);
         return;
       }
@@ -36,20 +55,32 @@ export default function CurrentAffairsDetailPage() {
       setLoading(true);
       setError(null);
 
-      const result = await getCurrentAffairById(articleId);
+      try {
+        const result = await getCurrentAffairById(articleId);
 
-      if (cancelled) {
-        return;
-      }
+        if (cancelled) {
+          return;
+        }
 
-      if (result.error) {
-        setError(result.error);
+        if (result.error) {
+          setError(result.error);
+          setArticle(null);
+        } else {
+          setArticle(result.data);
+        }
+      } catch (loadError) {
+        if (cancelled) {
+          return;
+        }
+
+        console.error('Unexpected error loading current affair:', loadError);
+        setError('Unable to load this article. Please try again.');
         setArticle(null);
-      } else {
-        setArticle(result.data);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-
-      setLoading(false);
     }
 
     void loadArticle();
@@ -58,6 +89,95 @@ export default function CurrentAffairsDetailPage() {
       cancelled = true;
     };
   }, [articleId]);
+
+  // Load the bookmark state for the current user.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadBookmark() {
+      setBookmarkError(null);
+      setBookmarkMessage(null);
+
+      if (authLoading) {
+        return;
+      }
+
+      if (!user || !articleId) {
+        setIsBookmarked(false);
+        setBookmarkLoading(false);
+        return;
+      }
+
+      setBookmarkLoading(true);
+
+      try {
+        const result = await isCurrentAffairBookmarked(articleId);
+
+        if (cancelled) {
+          return;
+        }
+
+        setIsBookmarked(result.data);
+        setBookmarkError(result.error);
+      } catch (loadError) {
+        if (cancelled) {
+          return;
+        }
+
+        console.error('Unexpected error checking bookmark:', loadError);
+        setBookmarkError('Unable to check saved status. Please try again.');
+      } finally {
+        if (!cancelled) {
+          setBookmarkLoading(false);
+        }
+      }
+    }
+
+    void loadBookmark();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [articleId, user, authLoading]);
+
+  async function handleBookmarkToggle() {
+    if (!user) {
+      setBookmarkError('Please sign in to save this article.');
+      setBookmarkMessage(null);
+      return;
+    }
+
+    if (!articleId || bookmarkBusy || bookmarkLoading) {
+      return;
+    }
+
+    const nextBookmarked = !isBookmarked;
+
+    setBookmarkBusy(true);
+    setBookmarkError(null);
+    setBookmarkMessage(null);
+
+    try {
+      const result = nextBookmarked
+        ? await saveCurrentAffairBookmark(articleId)
+        : await removeCurrentAffairBookmark(articleId);
+
+      if (result.error) {
+        setBookmarkError(result.error);
+        return;
+      }
+
+      setIsBookmarked(nextBookmarked);
+      setBookmarkMessage(
+        nextBookmarked ? 'Article saved.' : 'Bookmark removed.'
+      );
+    } catch (toggleError) {
+      console.error('Unexpected error updating bookmark:', toggleError);
+      setBookmarkError('Unable to update the bookmark. Please try again.');
+    } finally {
+      setBookmarkBusy(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -162,7 +282,28 @@ export default function CurrentAffairsDetailPage() {
             )}
 
             <div className="article-actions">
-              <button className="article-action-btn">
+              <button
+                type="button"
+                className="article-action-btn"
+                onClick={() => void handleBookmarkToggle()}
+                disabled={
+                  authLoading || bookmarkLoading || bookmarkBusy
+                }
+                aria-label={
+                  isBookmarked ? 'Remove bookmark' : 'Save article'
+                }
+              >
+                <Bookmark size={16} />
+                {authLoading || bookmarkLoading
+                  ? 'Checking saved status...'
+                  : bookmarkBusy
+                    ? 'Saving...'
+                    : isBookmarked
+                      ? 'Remove bookmark'
+                      : 'Save article'}
+              </button>
+
+              <button type="button" className="article-action-btn">
                 <Clock3 size={16} /> {publishedLabel}
               </button>
 
@@ -173,6 +314,22 @@ export default function CurrentAffairsDetailPage() {
                 Back to news <ArrowRight size={16} />
               </Link>
             </div>
+
+            {bookmarkError && (
+              <p role="alert">
+                {bookmarkError}
+                {!user && (
+                  <>
+                    {' '}
+                    <Link to="/login">Sign in</Link>
+                  </>
+                )}
+              </p>
+            )}
+
+            {bookmarkMessage && (
+              <p role="status">{bookmarkMessage}</p>
+            )}
 
             <div className="news-related-discussion">
               <div className="eyebrow">
