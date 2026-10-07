@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount';
 import { Link } from 'react-router-dom';
 import {
   BookOpen,
@@ -24,6 +25,7 @@ import {
 type Tab = 'answers' | 'drafts' | 'saved' | 'activity';
 
 export default function ProfilePage() {
+  const { count: unreadNotificationCount } = useUnreadNotificationCount();
   const [activeTab, setActiveTab] = useState<Tab>('answers');
 
   const { user, profile, loading } = useAuth();
@@ -247,7 +249,7 @@ export default function ProfilePage() {
             </div>
             <Link to="/notifications" className="rail-section-link">
               <div className="eyebrow"><span />Notifications</div>
-              <strong>3 unread notifications</strong>
+              <strong>{unreadNotificationCount} unread {unreadNotificationCount === 1 ? "notification" : "notifications"}</strong>
             </Link>
           </aside>
         </div>

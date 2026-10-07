@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useUnreadNotificationCount } from '@/hooks/useUnreadNotificationCount';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Bell,
@@ -31,6 +32,7 @@ export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, profile, loading, signOut } = useAuth();
+  const { count: unreadNotificationCount, error: notificationCountError } = useUnreadNotificationCount();
 
   const isActive = (item: string) => {
     const href = getHref(item);
@@ -113,7 +115,9 @@ export default function Header() {
             aria-label="Notifications"
           >
             <Bell size={18} />
-            <span className="notification-dot">3</span>
+            {!notificationCountError && unreadNotificationCount > 0 && (
+              <span className="notification-dot" aria-label={`${unreadNotificationCount} unread notifications`}>{unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}</span>
+            )}
           </Link>
 
           <Link to="/profile" className="profile-button">
@@ -190,10 +194,20 @@ export default function Header() {
 
             <Link
               to="/notifications"
-              className="icon-button"
+              className="icon-button relative"
               onClick={() => setMenuOpen(false)}
+              aria-label={
+                unreadNotificationCount > 0
+                  ? `Notifications, ${unreadNotificationCount} unread`
+                  : 'Notifications'
+              }
             >
               <Bell size={18} />
+              {!notificationCountError && unreadNotificationCount > 0 && (
+                <span className="notification-dot">
+                  {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                </span>
+              )}
             </Link>
 
             <Link
@@ -222,3 +236,4 @@ export default function Header() {
     </header>
   );
 }
+
