@@ -54,6 +54,53 @@ export async function listQuestions(): Promise<{
   };
 }
 
+export type PublicQuestionSearchResult = {
+  id: string;
+  title: string;
+  body: string | null;
+  language_code: string;
+  created_at: string;
+};
+
+export async function searchPublishedQuestions(
+  searchTerm: string,
+  limit = 20
+): Promise<{
+  data: PublicQuestionSearchResult[];
+  error: string | null;
+}> {
+  const term = searchTerm.trim();
+
+  if (!term) {
+    return { data: [], error: null };
+  }
+
+  if (term.length > 100) {
+    return { data: [], error: 'Search term must not exceed 100 characters.' };
+  }
+
+  const safeLimit = Math.max(1, Math.min(Math.trunc(limit) || 20, 50));
+
+  const { data, error } = await supabase.functions.invoke(
+    'search-published-questions',
+    { body: { searchTerm: term, limit: safeLimit } }
+  );
+
+  if (error) {
+    console.error('Failed to search published questions:', error.message);
+    return { data: [], error: 'Could not load published questions.' };
+  }
+
+  if (!data || !Array.isArray(data.data)) {
+    console.error('Public question search returned an invalid response.');
+    return { data: [], error: 'Could not load published questions.' };
+  }
+
+  return {
+    data: data.data as PublicQuestionSearchResult[],
+    error: null,
+  };
+}
 export async function getQuestionByUuid(
   questionId: string
 ): Promise<{

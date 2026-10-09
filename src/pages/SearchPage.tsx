@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Search, MessageCircle, Newspaper, BookOpen, Landmark, CircleHelp } from 'lucide-react';
 import PageHero from '@/components/PageHero';
 import SectionHeading from '@/components/SectionHeading';
-import QuestionCard from '@/components/QuestionCard';
+
 import NewsCard from '@/components/NewsCard';
 import { TopicCardGrid } from '@/components/TopicCard';
 import { questions, news, topics, articles } from '@/data/mockData';
+import { searchPublishedQuestions, type PublicQuestionSearchResult } from '@/lib/questionService';
 
 type Tab = 'all' | 'questions' | 'articles' | 'current-affairs' | 'sanatan-board' | 'categories';
 
@@ -20,12 +21,57 @@ const tabs: { id: Tab; label: string; icon: typeof Search }[] = [
 ];
 
 export default function SearchPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
   const [activeTab, setActiveTab] = useState<Tab>('all');
+  const [searchInput, setSearchInput] = useState(query);
+  const [matchedQuestions, setMatchedQuestions] = useState<PublicQuestionSearchResult[]>([]);
+  const [questionsLoading, setQuestionsLoading] = useState(false);
+  const [questionsError, setQuestionsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSearchInput(query);
+  }, [query]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadQuestions() {
+      if (!query.trim()) {
+        setMatchedQuestions([]);
+        setQuestionsError(null);
+        setQuestionsLoading(false);
+        return;
+      }
+
+      setQuestionsLoading(true);
+      setQuestionsError(null);
+
+      try {
+        const result = await searchPublishedQuestions(query);
+
+        if (cancelled) return;
+
+        setMatchedQuestions(result.data);
+        setQuestionsError(result.error);
+      } catch {
+        if (cancelled) return;
+
+        setMatchedQuestions([]);
+        setQuestionsError('Could not load question results. Please try again.');
+      } finally {
+        if (!cancelled) setQuestionsLoading(false);
+      }
+    }
+
+    void loadQuestions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [query]);
 
   const q = query.toLowerCase();
-  const matchedQuestions = q ? questions.filter((item) => item.question.toLowerCase().includes(q) || item.category.toLowerCase().includes(q)) : questions;
   const matchedNews = q ? news.filter((n) => n.headline.toLowerCase().includes(q) || n.category.toLowerCase().includes(q)) : news;
   const matchedArticles = q ? articles.filter((a) => a.title.toLowerCase().includes(q) || a.category.toLowerCase().includes(q)) : articles;
   const matchedTopics = q ? topics.filter((t) => t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)) : topics;
@@ -43,11 +89,28 @@ export default function SearchPage() {
       <section className="section-shell" style={{ paddingTop: '48px' }}>
         <div className="search-page-layout">
           <div className="search-page-main">
-            <div className="search-wrap search-wrap-large" style={{ margin: '0 0 24px' }}>
+            <form
+              className="search-wrap search-wrap-large"
+              style={{ margin: '0 0 24px' }}
+              onSubmit={(event) => {
+                event.preventDefault();
+                const nextQuery = searchInput.trim();
+                if (nextQuery) {
+                  setSearchParams({ q: nextQuery });
+                } else {
+                  setSearchParams({});
+                }
+              }}
+            >
               <Search size={20} />
-              <input defaultValue={query} placeholder="Search questions, articles, news or topics..." />
-              <button>Search</button>
-            </div>
+              <input
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="Search questions, articles, news or topics..."
+                aria-label="Search content"
+              />
+              <button type="submit">Search</button>
+            </form>
             <div className="search-tabs">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
@@ -63,7 +126,29 @@ export default function SearchPage() {
               <div className="search-result-section">
                 <SectionHeading eyebrow="Community" title="Questions" />
                 <div className="question-list">
-                  {matchedQuestions.length > 0 ? matchedQuestions.map((item) => <QuestionCard question={item} key={item.id} />) : <p className="no-results">No questions found.</p>}
+                  {!query.trim() ? (
+                    <p className="no-results">Enter a search term to find published questions.</p>
+                  ) : questionsLoading ? (
+                    <p className="no-results">Searching published questions...</p>
+                  ) : questionsError ? (
+                    <p className="no-results">Could not load question results. Please try again.</p>
+                  ) : matchedQuestions.length > 0 ? (
+                    matchedQuestions.map((item) => (
+                      <Link to={`/questions/${item.id}`} className="answer-preview" key={item.id}>
+                        <div className="answer-preview-head">
+                          <div>
+                            <strong>{item.title}</strong>
+                            <span className="answer-author">
+                              {new Date(item.created_at).toLocaleDateString()} · {item.language_code}
+                            </span>
+                          </div>
+                        </div>
+                        <p>{item.body ?? 'No additional details provided.'}</p>
+                      </Link>
+                    ))
+                  ) : (
+                    <p className="no-results">No published questions found.</p>
+                  )}
                 </div>
               </div>
             )}
